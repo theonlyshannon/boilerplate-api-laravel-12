@@ -70,10 +70,10 @@ class MakeApiCommand extends Command
     protected function createRequests()
     {
         $name = $this->argument('name');
-        $this->call('make:request', ['name' => "Store{$name}Request"]);
-        $this->call('make:request', ['name' => "Update{$name}Request"]);
+        $this->call('make:request', ['name' => "{$name}StoreRequest"]);
+        $this->call('make:request', ['name' => "{$name}UpdateRequest"]);
 
-        $storeRequestPath = app_path("Http/Requests/Store{$name}Request.php");
+        $storeRequestPath = app_path("Http/Requests/{$name}StoreRequest.php");
         $storeRequestContent = <<<EOT
             <?php
 
@@ -113,7 +113,7 @@ class MakeApiCommand extends Command
 
         file_put_contents($storeRequestPath, $storeRequestContent);
 
-        $updateRequestPath = app_path("Http/Requests/Update{$name}Request.php");
+        $updateRequestPath = app_path("Http/Requests/{$name}UpdateRequest.php");
         $updateRequestContent = <<<EOT
             <?php
 
@@ -403,7 +403,13 @@ class MakeApiCommand extends Command
     protected function createResource()
     {
         $name = $this->argument('name');
-        $resource = app_path("Http/Resources/{$name}Resource.php");
+        $resourcePath = app_path("Http/Resources/{$name}Resource.php");
+
+        // Create directory if it doesn't exist
+        $directory = dirname($resourcePath);
+        if (!is_dir($directory)) {
+            mkdir($directory, 0777, true);
+        }
 
         $resourceContent = <<<EOT
             <?php
@@ -433,7 +439,7 @@ class MakeApiCommand extends Command
             }
             EOT;
 
-        file_put_contents($resource, $resourceContent);
+        file_put_contents($resourcePath, $resourceContent);
     }
 
     protected function createFactory()
@@ -638,7 +644,7 @@ EOT;
         $name = Str::kebab($name);
         $routes = base_path('routes/api.php');
 
-        $routeContent = "\nRoute::apiresource('{$name}', App\Http\Controllers\Web\Api\\{$this->argument('name')}Controller::class);";
+        $routeContent = "\nRoute::apiresource('{$name}', App\Http\Controllers\Api\\{$this->argument('name')}Controller::class);";
 
         file_put_contents($routes, $routeContent, FILE_APPEND);
     }
