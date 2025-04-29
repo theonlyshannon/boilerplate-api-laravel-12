@@ -12,7 +12,7 @@ class MakeApiCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'make:crud {name}';
+    protected $signature = 'make:apiv2 {name}';
 
     /**
      * The console command description.
@@ -178,6 +178,15 @@ class MakeApiCommand extends Command
 
             class __namePascalCase__Controller extends Controller
             {
+
+                public function __construct()
+                {
+                    $this->middleware('permission:__nameKebabCase__-list', ['only' => ['index', 'show']]);
+                    $this->middleware('permission:__nameKebabCase__-create', ['only' => ['store']]);
+                    $this->middleware('permission:__nameKebabCase__-edit', ['only' => ['update']]);
+                    $this->middleware('permission:__nameKebabCase__-delete', ['only' => ['destroy']]);
+                }
+
                 /**
                  * Display a listing of the resource.
                  */
@@ -508,131 +517,170 @@ EOT;
         $testPath = base_path("tests/Feature/{$name}ControllerTest.php");
 
         $testContent = <<<EOT
-<?php
+    <?php
 
-namespace Tests\Feature;
+    namespace Tests\Feature;
 
-use App\Models\\{$name};
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+    use App\Models\\{$name};
+    use App\Models\User;
+    use Illuminate\Foundation\Testing\RefreshDatabase;
+    use Tests\TestCase;
 
-class {$name}ControllerTest extends TestCase
-{
-    use RefreshDatabase;
-
-    protected function setUp(): void
+    class {$name}ControllerTest extends TestCase
     {
-        parent::setUp();
-        \$this->seed();
-    }
+        use RefreshDatabase;
 
-    /** @test */
-    public function it_can_list_all_{$name}s()
-    {
-        \$response = \$this->getJson('/api/{$name}s');
+        protected \$user;
+        protected \$token;
 
-        \$response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data',
-                'current_page',
-                'per_page',
-                'total',
-                'last_page'
+        protected function setUp(): void
+        {
+            parent::setUp();
+            \$this->seed();
+
+            // Login dan ambil token
+            \$this->user = User::where('email', 'admin@example.com')->first();
+            \$response = \$this->postJson('/api/login', [
+                'email' => 'admin@example.com',
+                'password' => 'password',
             ]);
-    }
+            \$this->token = \$response->json('data.token');
+        }
 
-    /** @test */
-    public function it_can_search_{$name}s()
-    {
-        \$response = \$this->getJson('/api/{$name}s?search=test');
+        /** @test */
+        public function it_can_list_all_{$name}s()
+        {
+            \$response = \$this->withHeaders([
+                'Authorization' => 'Bearer ' . \$this->token,
+                'Accept' => 'application/json'
+            ])->getJson('/api/{$name}s');
 
-        \$response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data',
-                'current_page',
-                'per_page',
-                'total',
-                'last_page'
+            \$response->assertStatus(200)
+                ->assertJsonStructure([
+                    'success',
+                    'message',
+                    'data'
+                ]);
+        }
+
+        /** @test */
+        public function it_can_search_{$name}s()
+        {
+            \$response = \$this->withHeaders([
+                'Authorization' => 'Bearer ' . \$this->token,
+                'Accept' => 'application/json'
+            ])->getJson('/api/{$name}s?search=test');
+
+            \$response->assertStatus(200)
+                ->assertJsonStructure([
+                    'success',
+                    'message',
+                    'data'
+                ]);
+        }
+
+        /** @test */
+        public function it_can_create_a_{$name}()
+        {
+            \$data = [
+                'name' => 'Test {$name}',
+                'slug' => 'test-{$name}'
+            ];
+
+            \$response = \$this->withHeaders([
+                'Authorization' => 'Bearer ' . \$this->token,
+                'Accept' => 'application/json'
+            ])->postJson('/api/{$name}s', \$data);
+
+            \$response->assertStatus(201)
+                ->assertJsonStructure([
+                    'success',
+                    'message',
+                    'data'
+                ]);
+
+            \$this->assertDatabaseHas(strtolower('{$name}s'), [
+                'name' => 'Test {$name}',
+                'slug' => 'test-{$name}'
             ]);
-    }
+        }
 
-    /** @test */
-    public function it_can_create_a_{$name}()
-    {
-        \$data = [
-            'name' => 'Test {$name}',
-            'slug' => 'test-{$name}'
-        ];
+        /** @test */
+        public function it_can_show_a_{$name}()
+        {
+            \${$name} = {$name}::factory()->create();
 
-        \$response = \$this->postJson('/api/{$name}s', \$data);
+            \$response = \$this->withHeaders([
+                'Authorization' => 'Bearer ' . \$this->token,
+                'Accept' => 'application/json'
+            ])->getJson('/api/{$name}s/' . \${$name}->id);
 
-        \$response->assertStatus(201)
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data'
+            \$response->assertStatus(200)
+                ->assertJsonStructure([
+                    'success',
+                    'message',
+                    'data'
+                ]);
+        }
+
+        /** @test */
+        public function it_can_update_a_{$name}()
+        {
+            \${$name} = {$name}::factory()->create();
+            \$data = [
+                'name' => 'Updated {$name}',
+                'slug' => 'updated-{$name}'
+            ];
+
+            \$response = \$this->withHeaders([
+                'Authorization' => 'Bearer ' . \$this->token,
+                'Accept' => 'application/json'
+            ])->putJson('/api/{$name}s/' . \${$name}->id, \$data);
+
+            \$response->assertStatus(200)
+                ->assertJsonStructure([
+                    'success',
+                    'message',
+                    'data'
+                ]);
+
+            \$this->assertDatabaseHas(strtolower('{$name}s'), [
+                'name' => 'Updated {$name}',
+                'slug' => 'updated-{$name}'
             ]);
+        }
 
-        \$this->assertDatabaseHas('{$name}s', \$data);
+        /** @test */
+        public function it_can_delete_a_{$name}()
+        {
+            \${$name} = {$name}::factory()->create();
+
+            \$response = \$this->withHeaders([
+                'Authorization' => 'Bearer ' . \$this->token,
+                'Accept' => 'application/json'
+            ])->deleteJson('/api/{$name}s/' . \${$name}->id);
+
+            \$response->assertStatus(200)
+                ->assertJsonStructure([
+                    'success',
+                    'message'
+                ]);
+
+            \$this->assertSoftDeleted(strtolower('{$name}s'), ['id' => \${$name}->id]);
+        }
+
+        /** @test */
+        public function it_cannot_access_without_authentication()
+        {
+            \$response = \$this->getJson('/api/{$name}s');
+
+            \$response->assertStatus(401)
+                ->assertJson([
+                    'message' => 'Unauthenticated.'
+                ]);
+        }
     }
-
-    /** @test */
-    public function it_can_show_a_{$name}()
-    {
-        \${$name} = {$name}::factory()->create();
-
-        \$response = \$this->getJson('/api/{$name}s/' . \${$name}->id);
-
-        \$response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data'
-            ]);
-    }
-
-    /** @test */
-    public function it_can_update_a_{$name}()
-    {
-        \${$name} = {$name}::factory()->create();
-        \$data = [
-            'name' => 'Updated {$name}',
-            'slug' => 'updated-{$name}'
-        ];
-
-        \$response = \$this->putJson('/api/{$name}s/' . \${$name}->id, \$data);
-
-        \$response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data'
-            ]);
-
-        \$this->assertDatabaseHas('{$name}s', \$data);
-    }
-
-    /** @test */
-    public function it_can_delete_a_{$name}()
-    {
-        \${$name} = {$name}::factory()->create();
-
-        \$response = \$this->deleteJson('/api/{$name}s/' . \${$name}->id);
-
-        \$response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'message'
-            ]);
-
-        \$this->assertSoftDeleted('{$name}s', ['id' => \${$name}->id]);
-    }
-}
-EOT;
+    EOT;
 
         file_put_contents($testPath, $testContent);
     }

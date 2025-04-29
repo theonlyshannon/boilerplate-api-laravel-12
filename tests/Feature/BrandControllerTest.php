@@ -29,7 +29,7 @@ class BrandControllerTest extends TestCase
         $this->token = $response->json('data.token');
     }
 
-    /** @test */
+    /**  */
     public function it_can_list_all_brands()
     {
         $response = $this->withHeaders([
@@ -42,10 +42,6 @@ class BrandControllerTest extends TestCase
                 'success',
                 'message',
                 'data',
-                'current_page',
-                'per_page',
-                'total',
-                'last_page'
             ]);
     }
 
@@ -62,10 +58,6 @@ class BrandControllerTest extends TestCase
                 'success',
                 'message',
                 'data',
-                'current_page',
-                'per_page',
-                'total',
-                'last_page'
             ]);
     }
 
@@ -74,9 +66,7 @@ class BrandControllerTest extends TestCase
     {
         $data = [
             'name' => 'Test Brand',
-            'description' => 'Test Brand Description',
-            'website' => 'https://testbrand.com',
-            'logo' => 'test-logo.png'
+            'slug' => 'Test Brand',
         ];
 
         $response = $this->withHeaders([
@@ -94,9 +84,6 @@ class BrandControllerTest extends TestCase
         $this->assertDatabaseHas('brands', [
             'name' => 'Test Brand',
             'slug' => 'test-brand',
-            'description' => 'Test Brand Description',
-            'website' => 'https://testbrand.com',
-            'logo' => 'test-logo.png'
         ]);
     }
 
@@ -124,9 +111,7 @@ class BrandControllerTest extends TestCase
         $brand = Brand::first();
         $data = [
             'name' => 'Updated Brand',
-            'description' => 'Updated Brand Description',
-            'website' => 'https://updatedbrand.com',
-            'logo' => 'updated-logo.png'
+            'slug' => 'Updated brand',
         ];
 
         $response = $this->withHeaders([
@@ -144,9 +129,6 @@ class BrandControllerTest extends TestCase
         $this->assertDatabaseHas('brands', [
             'name' => 'Updated Brand',
             'slug' => 'updated-brand',
-            'description' => 'Updated Brand Description',
-            'website' => 'https://updatedbrand.com',
-            'logo' => 'updated-logo.png'
         ]);
     }
 

@@ -9,8 +9,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\BrandResource;
 use App\Http\Requests\BrandStoreRequest;
 use App\Http\Requests\BrandUpdateRequest;
+use Illuminate\Routing\Controller as BaseController;
 
-class BrandController extends Controller
+class BrandController extends BaseController
 {
     public function __construct()
     {
